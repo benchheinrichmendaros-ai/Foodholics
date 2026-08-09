@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foodholics Product Registry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     DESIGN TOKENS — Foodholics logo palette
+     Orange  = the marmalade swirl in the jar mark
+     Green   = the atchara shred in the jar mark
+     Ink     = the jar outline / wordmark
+     Paper   = the cream field the logo sits on
+     ============================================================ */
+  :root{
+    --paper:      #FAF6EC;
+    --card:       #FFFFFF;
+    --line:       #E8E0CD;
+    --ink:        #2B3238;
+    --ink-soft:   #616B72;
+    --stone:      #8B8478;
+
+    --orange:      #E2833A;
+    --orange-dark: #C0691F;
+    --orange-soft: #FBEAD5;
+
+    --green:      #6E9A4C;
+    --green-dark: #557A38;
+    --green-soft: #E7F0DC;
+
+    --amber:      #C08A2E;
+    --amber-soft: #F7EBD4;
+
+    --red:        #BE4F3B;
+    --red-soft:   #F8E4DF;
+
+    --shadow: 0 1px 2px rgba(43,50,56,0.04), 0 6px 16px rgba(43,50,56,0.06);
+    --radius: 14px;
+    --radius-sm: 9px;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  h1,h2,h3{
+    font-family:'Space Grotesk', system-ui, sans-serif;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
+  button{ font-family:inherit; cursor:pointer; }
+  a{ color:var(--orange-dark); }
+
+  /* ---------- barcode stripe motif (signature element) ---------- */
+  .stripes{
+    height:6px;
+    background-image: repeating-linear-gradient(90deg,
+      var(--ink) 0 2px, transparent 2px 5px,
+      var(--ink) 5px 6px, transparent 6px 9px,
+      var(--ink) 9px 12px, transparent 12px 14px,
+      var(--ink) 14px 15px, transparent 15px 19px);
+    opacity:0.9;
+  }
+
+  /* ---------- layout shell ---------- */
+  .shell{ max-width:960px; margin:0 auto; padding:0 20px 64px; }
+
+  header.topbar{
+    background:var(--card);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{
+    max-width:960px; margin:0 auto; padding:16px 20px 0;
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-mark{ width:34px; height:34px; flex:none; }
+  .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
+  .brand-text .word{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:17px; }
+  .brand-text .tag{ font-size:11px; color:var(--stone); letter-spacing:0.02em; }
+
+  nav.tabs{ display:flex; gap:4px; }
+  .tab{
+    background:none; border:none; padding:10px 14px 12px;
+    font-size:14px; font-weight:500; color:var(--ink-soft);
+    border-bottom:3px solid transparent; margin-bottom:-1px;
+  }
+  .tab.active{ color:var(--ink); border-bottom-color: var(--orange); }
+  .tab:hover:not(.active){ color:var(--ink); }
+
+  main{ padding-top:28px; }
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* ---------- dashboard ---------- */
+  .hero h1{ font-size:28px; font-weight:700; }
+  .hero p.subtitle{ margin:6px 0 0; color:var(--ink-soft); font-size:15px; }
+
+  .stat-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+    margin:24px 0;
+  }
+  .stat-card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; box-shadow:var(--shadow);
+  }
+  .stat-card .num{ font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:700; }
+  .stat-card .label{ font-size:12.5px; color:var(--stone); margin-top:2px; }
+
+  .cta-row{ display:flex; gap:10px; flex-wrap:wrap; margin:22px 0 32px; }
+  .btn{
+    border-radius:10px; padding:12px 20px; font-size:14.5px; font-weight:600;
+    border:1px solid transparent; display:inline-flex; align-items:center; gap:8px;
+    transition:transform .05s ease;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn-primary{ background:var(--orange); color:#fff; }
+  .btn-primary:hover{ background:var(--orange-dark); }
+  .btn-secondary{ background:var(--card); color:var(--ink); border-color:var(--line); }
+  .btn-secondary:hover{ border-color:var(--orange); color:var(--orange-dark); }
+  .btn-block{ width:100%; justify-content:center; }
+
+  .section-label{
+    font-size:12.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--stone); margin-bottom:10px;
+  }
+
+  .recent-list{ display:flex; flex-direction:column; gap:8px; }
+  .recent-item{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius-sm);
+    padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+    cursor:pointer;
+  }
+  .recent-item:hover{ border-color:var(--orange); }
+  .recent-item .name{ font-weight:500; font-size:14px; }
+  .recent-item .code{ font-size:12px; color:var(--stone); }
+
+  /* ---------- badges ---------- */
+  .badge{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; font-weight:600; letter-spacing:0.02em;
+    padding:5px 10px; border-radius:999px;
+  }
+  .badge::before{ content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .badge-active   { background:var(--green-soft); color:var(--green-dark); }
+  .badge-suspended{ background:var(--amber-soft); color:var(--amber); }
+  .badge-recalled { background:var(--red-soft);   color:var(--red); }
+  .badge-expired  { background:#F1EEE6;           color:var(--stone); }
+  .badge-notfound { background:var(--red-soft);   color:var(--red); }
+
+  .badge-lg{ font-size:13px; padding:7px 14px; }
+  .badge-registered{ background:var(--green-soft); color:var(--green-dark); }
+  .badge-unregistered{ background:var(--red-soft); color:var(--red); }
+
+  /* ---------- scan view ---------- */
+  .scan-panel{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:24px; box-shadow:var(--shadow);
+  }
+  .scan-frame{
+    position:relative; overflow:hidden;
+    background:var(--ink); border-radius:var(--radius-sm);
+    height:150px; display:flex; align-items:center; justify-content:center;
+    margin-bottom:18px;
+  }
+  .scan-frame .bars{
+    display:flex; align-items:center; gap:3px; height:70px; opacity:0.85;
+  }
+  .scan-frame .bars span{ display:block; width:3px; background:#F4EFE2; }
+  .scan-frame .corner{ position:absolute; width:22px; height:22px; border:2px solid var(--orange); }
+  .scan-frame .corner.tl{ top:10px; left:10px; border-right:none; border-bottom:none; }
+  .scan-frame .corner.tr{ top:10px; right:10px; border-left:none; border-bottom:none; }
+  .scan-frame .corner.bl{ bottom:10px; left:10px; border-right:none; border-top:none; }
+  .scan-frame .corner.br{ bottom:10px; right:10px; border-left:none; border-top:none; }
+  .scan-frame .line{
+    position:absolute; left:8%; right:8%; height:2px; background:var(--orange);
+    box-shadow:0 0 8px var(--orange);
+    animation: scanmove 2.6s ease-in-out infinite;
+  }
+  @keyframes scanmove{
+    0%,100%{ top:18%; } 50%{ top:78%; }
+  }
+  .scan-caption{ text-align:center; font-size:12.5px; color:var(--stone); margin-top:-10px; margin-bottom:20px; }
+
+  .field-label{ font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; display:block; }
+  .input-row{ display:flex; gap:8px; }
+  input[type="text"]{
+    flex:1; border:1px solid var(--line); background:var(--paper);
+    border-radius:10px; padding:12px 14px; font-size:15px; color:var(--ink);
+    font-family:'IBM Plex Mono', monospace;
+  }
+  input[type="text"]:focus{ outline:none; border-color:var(--orange); background:#fff; }
+  .hint{ font-size:12.5px; color:var(--stone); margin-top:10px; }
+
+  /* ---------- result panel ---------- */
+  .result{
+    margin-top:20px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:22px; box-shadow:var(--shadow); display:none;
+  }
+  .result.show{ display:block; }
+  .result-top{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+  .result h2{ font-size:19px; margin-top:10px; }
+  .result .barcode-chip{
+    display:inline-block; margin:6px 0 14px; padding:6px 10px;
+    background:var(--paper); border:1px solid var(--line); border-radius:7px;
+    font-size:13px; letter-spacing:0.03em;
+  }
+  .result .status-row{ display:flex; align-items:center; gap:8px; margin-bottom:14px; font-size:13.5px; color:var(--ink-soft); }
+  .result .info-para{ font-size:14.5px; color:var(--ink); line-height:1.6; background:var(--paper); border-radius:var(--radius-sm); padding:14px 16px; }
+  .verify-msg{ margin-top:14px; font-size:13px; color:var(--green-dark); display:flex; align-items:center; gap:6px; }
+  .verify-msg.bad{ color:var(--red); }
+
+  /* ---------- registry ---------- */
+  .filter-row{ display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 18px; }
+  .chip{
+    border:1px solid var(--line); background:var(--card); color:var(--ink-soft);
+    padding:7px 13px; border-radius:999px; font-size:13px; font-weight:500;
+  }
+  .chip.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  .product-list{ display:flex; flex-direction:column; gap:10px; }
+  .product-card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius-sm);
+    padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .product-card:hover{ border-color:var(--orange); cursor:pointer; }
+  .product-card .name{ font-weight:600; font-size:14.5px; }
+  .product-card .barcode{ font-size:12px; color:var(--stone); margin-top:2px; }
+  .empty-state{ text-align:center; padding:40px 20px; color:var(--stone); font-size:14px; }
+
+  /* ---------- modal ---------- */
+  .modal-backdrop{
+    display:none; position:fixed; inset:0; background:rgba(43,50,56,0.45);
+    align-items:flex-end; justify-content:center; z-index:50; padding:0;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    background:var(--card); width:100%; max-width:520px; border-radius:18px 18px 0 0;
+    padding:22px; max-height:85vh; overflow-y:auto;
+  }
+  @media (min-width:640px){
+    .modal-backdrop{ align-items:center; }
+    .modal{ border-radius:var(--radius); margin-bottom:40px; }
+  }
+  .modal-close{
+    background:none; border:none; color:var(--stone); font-size:14px; float:right;
+    padding:4px 8px;
+  }
+
+  footer{
+    max-width:960px; margin:20px auto 0; padding:16px 20px 40px;
+    font-size:12px; color:var(--stone); text-align:center;
+  }
+
+  @media (max-width:640px){
+    .stat-grid{ grid-template-columns:1fr; }
+    .brand-text .tag{ display:none; }
+    nav.tabs{ width:100%; justify-content:space-between; }
+    .tab{ flex:1; text-align:center; padding:10px 4px 12px; }
+    .input-row{ flex-direction:column; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .scan-frame .line{ animation:none; top:48%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 64 64" fill="none">
+        <path d="M20 20 h24 a4 4 0 0 1 4 4 v22 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 v-22 a4 4 0 0 1 4 -4 z" stroke="#2B3238" stroke-width="2.5" fill="#fff"/>
+        <path d="M23 20 v-4 a3 3 0 0 1 3 -3 h12 a3 3 0 0 1 3 3 v4" stroke="#2B3238" stroke-width="2.5" fill="none"/>
+        <path d="M26 30 q10 -6 6 8 q-3 10 10 6" stroke="#E2833A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <path d="M38 32 q6 6 -2 14 q6 3 8 -4" stroke="#6E9A4C" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div class="brand-text">
+        <span class="word">Foodholics</span>
+        <span class="tag">Product Registry</span>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-view="dashboard">Dashboard</button>
+      <button class="tab" data-view="scan">Scan</button>
+      <button class="tab" data-view="registry">Registry</button>
+    </nav>
+  </div>
+  <div class="stripes"></div>
+</header>
+
+<div class="shell">
+  <main>
+
+    <!-- ================= DASHBOARD ================= -->
+    <section class="view active" id="view-dashboard">
+      <div class="hero">
+        <h1>Foodholics Product Registry</h1>
+        <p class="subtitle">Verify registered Foodholics products</p>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="num" id="stat-total">0</div>
+          <div class="label">Total registered products</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="stat-active">0</div>
+          <div class="label">Active products</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="stat-recent">0</div>
+          <div class="label">Recently added</div>
+        </div>
+      </div>
+
+      <div class="cta-row">
+        <button class="btn btn-primary" onclick="switchView('scan')">Scan Product</button>
+        <button class="btn btn-secondary" onclick="switchView('scan')">Search Barcode</button>
+      </div>
+
+      <div class="section-label">Recently added</div>
+      <div class="recent-list" id="recent-list"></div>
+    </section>
+
+    <!-- ================= SCAN ================= -->
+    <section class="view" id="view-scan">
+      <h2 style="font-size:22px; margin-bottom:16px;">Scan a product barcode</h2>
+
+      <div class="scan-panel">
+        <div class="scan-frame">
+          <div class="corner tl"></div><div class="corner tr"></div>
+          <div class="corner bl"></div><div class="corner br"></div>
+          <div class="bars" id="fake-bars"></div>
+          <div class="line"></div>
+        </div>
+        <p class="scan-caption">Camera scanning isn't wired up in this prototype — line up a barcode and use the field below, or point a handheld scanner at this page.</p>
+
+        <label class="field-label" for="barcode-input">Barcode number</label>
+        <div class="input-row">
+          <input type="text" id="barcode-input" inputmode="numeric" placeholder="e.g. 4801234567890" autocomplete="off">
+          <button class="btn btn-primary" onclick="handleSearch()">Search</button>
+        </div>
+        <p class="hint">Works with keyboard-emulating handheld scanners — scan into the field and it will search automatically.</p>
+      </div>
+
+      <div class="result" id="result-panel"></div>
+    </section>
+
+    <!-- ================= REGISTRY ================= -->
+    <section class="view" id="view-registry">
+      <h2 style="font-size:22px; margin-bottom:16px;">Product registry</h2>
+
+      <input type="text" id="registry-search" placeholder="Search by name or barcode" style="width:100%;">
+
+      <div class="filter-row" id="filter-row"></div>
+
+      <div class="product-list" id="product-list"></div>
+    </section>
+
+  </main>
+
+  <footer>
+    Internal tool for Foodholics staff use · Not affiliated with or claiming official GS1 barcode registration.
+  </footer>
+</div>
+
+<div class="modal-backdrop" id="modal-backdrop" onclick="if(event.target===this) closeModal()">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script>
+/* ================================================================
+   DATA LAYER
+   Everything below reads from a local mock array. To connect a
+   real backend later, replace the two functions in this block
+   (getAllProducts / getProductByBarcode) with real API calls that
+   return the same shapes — nothing else in the app needs to change.
+   ================================================================ */
+
+const PRODUCTS = [
+  {
+    productId: "FH-0001",
+    barcode: "4801234500123",
+    name: "Foodholics Orange Marmalade 250g",
+    status: "Active",
+    dateAdded: "2026-08-01",
+    recent: true,
+    productInfo: "Foodholics Orange Marmalade 250g, Batch OM-260801, produced on August 1, 2026, best before February 1, 2027, registered and active."
+  },
+  {
+    productId: "FH-0002",
+    barcode: "4801234500130",
+    name: "Foodholics Orange Marmalade 500g",
+    status: "Active",
+    dateAdded: "2026-08-01",
+    recent: true,
+    productInfo: "Foodholics Orange Marmalade 500g, Batch OM-260802, produced on August 1, 2026, best before February 1, 2027, registered and active."
+  },
+  {
+    productId: "FH-0003",
+    barcode: "4801234500147",
+    name: "Foodholics Atchara 250g",
+    status: "Active",
+    dateAdded: "2026-07-18",
+    recent: false,
+    productInfo: "Foodholics Atchara 250g, Batch AT-260718, produced on July 18, 2026, best before January 18, 2027, registered and active."
+  },
+  {
+    productId: "FH-0004",
+    barcode: "4801234500154",
+    name: "Foodholics Atchara 500g",
+    status: "Suspended",
+    dateAdded: "2026-07-18",
+    recent: false,
+    productInfo: "Foodholics Atchara 500g, Batch AT-260719, produced on July 18, 2026, best before January 18, 2027, registration suspended pending label review."
+  },
+  {
+    productId: "FH-0005",
+    barcode: "4801234500161",
+    name: "Foodholics Orange Marmalade 250g (Batch OM-250115)",
+    status: "Expired",
+    dateAdded: "2025-01-15",
+    recent: false,
+    productInfo: "Foodholics Orange Marmalade 250g, Batch OM-250115, produced on January 15, 2025, best before July 15, 2025, shelf life expired."
+  },
+  {
+    productId: "FH-0006",
+    barcode: "4801234500178",
+    name: "Foodholics Atchara 250g (Batch AT-250310)",
+    status: "Recalled",
+    dateAdded: "2025-03-10",
+    recent: false,
+    productInfo: "Foodholics Atchara 250g, Batch AT-250310, produced on March 10, 2025, recalled on March 28, 2025 due to a packaging seal defect."
+  }
+];
+
+async function getAllProducts(){
+  return PRODUCTS;
+}
+async function getProductByBarcode(barcode){
+  return PRODUCTS.find(p => p.barcode === barcode.trim()) || null;
+}
+
+/* ================================================================
+   VIEW / STATE
+   ================================================================ */
+
+let registryFilter = "All";
+let registrySearch = "";
+
+const STATUS_META = {
+  "Active":    { label:"Active",    cls:"badge-active" },
+  "Suspended": { label:"Suspended", cls:"badge-suspended" },
+  "Recalled":  { label:"Recalled",  cls:"badge-recalled" },
+  "Expired":   { label:"Expired",   cls:"badge-expired" }
+};
+
+function statusBadgeHTML(status){
+  const m = STATUS_META[status] || { label:status, cls:"badge-expired" };
+  return `<span class="badge ${m.cls}">${m.label}</span>`;
+}
+
+function switchView(view){
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById("view-" + view).classList.add("active");
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === view));
+  if(view === "scan"){
+    setTimeout(() => document.getElementById("barcode-input").focus(), 50);
+  }
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => switchView(t.dataset.view)));
+
+/* ---------------- dashboard ---------------- */
+
+async function renderDashboard(){
+  const products = await getAllProducts();
+  document.getElementById("stat-total").textContent = products.length;
+  document.getElementById("stat-active").textContent = products.filter(p => p.status === "Active").length;
+  document.getElementById("stat-recent").textContent = products.filter(p => p.recent).length;
+
+  const recent = products.filter(p => p.recent);
+  const list = document.getElementById("recent-list");
+  list.innerHTML = recent.map(p => `
+    <div class="recent-item" onclick="openDetailModal('${p.barcode}')">
+      <div>
+        <div class="name">${p.name}</div>
+        <div class="code mono">${p.barcode}</div>
+      </div>
+      ${statusBadgeHTML(p.status)}
+    </div>
+  `).join("") || `<p class="hint">No recently added products.</p>`;
+}
+
+/* ---------------- scan / verification ---------------- */
+
+// purely decorative bars inside the scan frame
+(function renderFakeBars(){
+  const el = document.getElementById("fake-bars");
+  const widths = [3,6,3,3,9,3,6,3,3,3,9,6,3,3,6,3,9,3,3,6,3,3,9,3];
+  el.innerHTML = widths.map(w => `<span style="width:${w}px"></span>`).join("");
+})();
+
+document.getElementById("barcode-input").addEventListener("keydown", (e) => {
+  if(e.key === "Enter"){ handleSearch(); }
+});
+
+async function handleSearch(){
+  const raw = document.getElementById("barcode-input").value.trim();
+  const panel = document.getElementById("result-panel");
+  if(!raw){ return; }
+
+  const product = await getProductByBarcode(raw);
+  panel.classList.add("show");
+
+  if(product){
+    panel.innerHTML = `
+      <div class="result-top">
+        <span class="badge badge-lg badge-registered">REGISTERED</span>
+      </div>
+      <h2>${product.name}</h2>
+      <div class="barcode-chip mono">${product.barcode}</div>
+      <div class="status-row">Status ${statusBadgeHTML(product.status)}</div>
+      <div class="info-para">${product.productInfo}</div>
+      <div class="verify-msg">✓ Verified against the Foodholics internal product registry.</div>
+    `;
+  }else{
+    panel.innerHTML = `
+      <div class="result-top">
+        <span class="badge badge-lg badge-unregistered">NOT REGISTERED</span>
+      </div>
+      <h2>No matching product</h2>
+      <div class="barcode-chip mono">${raw}</div>
+      <p style="color:var(--ink-soft); font-size:14.5px;">This barcode doesn't match any product in the Foodholics registry. Double-check the number, or confirm the item with the packaging team.</p>
+      <div class="verify-msg bad">✕ No record found for this barcode.</div>
+    `;
+  }
+}
+
+/* ---------------- registry list ---------------- */
+
+const FILTERS = ["All","Active","Suspended","Recalled","Expired"];
+
+function renderFilterRow(){
+  const row = document.getElementById("filter-row");
+  row.innerHTML = FILTERS.map(f =>
+    `<button class="chip ${f === registryFilter ? 'active':''}" onclick="setFilter('${f}')">${f}</button>`
+  ).join("");
+}
+function setFilter(f){
+  registryFilter = f;
+  renderFilterRow();
+  renderRegistryList();
+}
+
+document.getElementById("registry-search").addEventListener("input", (e) => {
+  registrySearch = e.target.value.trim().toLowerCase();
+  renderRegistryList();
+});
+
+async function renderRegistryList(){
+  const products = await getAllProducts();
+  const filtered = products.filter(p => {
+    const matchesFilter = registryFilter === "All" || p.status === registryFilter;
+    const matchesSearch = !registrySearch ||
+      p.name.toLowerCase().includes(registrySearch) ||
+      p.barcode.includes(registrySearch);
+    return matchesFilter && matchesSearch;
+  });
+
+  const list = document.getElementById("product-list");
+  if(filtered.length === 0){
+    list.innerHTML = `<div class="empty-state">No products match your search.</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(p => `
+    <div class="product-card" onclick="openDetailModal('${p.barcode}')">
+      <div>
+        <div class="name">${p.name}</div>
+        <div class="barcode mono">${p.barcode}</div>
+      </div>
+      ${statusBadgeHTML(p.status)}
+    </div>
+  `).join("");
+}
+
+/* ---------------- detail modal ---------------- */
+
+async function openDetailModal(barcode){
+  const product = await getProductByBarcode(barcode);
+  if(!product) return;
+  document.getElementById("modal-body").innerHTML = `
+    <button class="modal-close" onclick="closeModal()">Close ✕</button>
+    <div style="clear:both;"></div>
+    <span class="badge badge-lg badge-registered">REGISTERED</span>
+    <h2 style="margin-top:12px; font-size:19px;">${product.name}</h2>
+    <div class="barcode-chip mono">${product.barcode}</div>
+    <div class="status-row">Status ${statusBadgeHTML(product.status)}</div>
+    <div class="info-para">${product.productInfo}</div>
+    <div class="verify-msg">✓ Verified against the Foodholics internal product registry.</div>
+  `;
+  document.getElementById("modal-backdrop").classList.add("show");
+}
+function closeModal(){
+  document.getElementById("modal-backdrop").classList.remove("show");
+}
+
+/* ---------------- init ---------------- */
+
+renderDashboard();
+renderFilterRow();
+renderRegistryList();
+</script>
+</body>
+</html>
