@@ -177,6 +177,9 @@
     display:flex; align-items:center; gap:3px; height:70px; opacity:0.85;
   }
   .scan-frame .bars span{ display:block; width:3px; background:#F4EFE2; }
+  #reader{ display:none; position:absolute; inset:0; }
+#reader video{ width:100% !important; height:100% !important; object-fit:cover; }
+#reader__scan_region img{ display:none; }
   .scan-frame .corner{ position:absolute; width:22px; height:22px; border:2px solid var(--orange); }
   .scan-frame .corner.tl{ top:10px; left:10px; border-right:none; border-bottom:none; }
   .scan-frame .corner.tr{ top:10px; right:10px; border-left:none; border-bottom:none; }
@@ -190,8 +193,9 @@
   @keyframes scanmove{
     0%,100%{ top:18%; } 50%{ top:78%; }
   }
-  .scan-caption{ text-align:center; font-size:12.5px; color:var(--stone); margin-top:-10px; margin-bottom:20px; }
-
+  /* change margin-bottom from 20px to 14px */
+.scan-caption{ text-align:center; font-size:12.5px; color:var(--stone); margin-top:-10px; margin-bottom:14px; }
+  
   .field-label{ font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; display:block; }
   .input-row{ display:flex; gap:8px; }
   input[type="text"]{
@@ -339,15 +343,18 @@
       <h2 style="font-size:22px; margin-bottom:16px;">Scan a product barcode</h2>
 
       <div class="scan-panel">
-        <div class="scan-frame">
-          <div class="corner tl"></div><div class="corner tr"></div>
-          <div class="corner bl"></div><div class="corner br"></div>
-          <div class="bars" id="fake-bars"></div>
-          <div class="line"></div>
-        </div>
-        <p class="scan-caption">Camera scanning isn't wired up in this prototype — line up a barcode and use the field below, or point a handheld scanner at this page.</p>
+        <!-- NEW -->
+<div class="scan-frame" id="scan-frame">
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+  <div class="bars" id="fake-bars"></div>
+  <div id="reader"></div>
+  <div class="line" id="scan-line"></div>
+</div>
+<p class="scan-caption" id="scan-caption">Tap "Enable camera scanning" and point your camera at a barcode, or use the field below.</p>
+<button class="btn btn-secondary btn-block" id="camera-toggle-btn" onclick="toggleCamera()">Enable camera scanning</button>
 
-        <label class="field-label" for="barcode-input">Barcode number</label>
+<label class="field-label" for="barcode-input" style="margin-top:20px; display:block;">Barcode number</label>
         <div class="input-row">
           <input type="text" id="barcode-input" inputmode="numeric" placeholder="e.g. 4801234567890" autocomplete="off">
           <button class="btn btn-primary" onclick="handleSearch()">Search</button>
@@ -379,7 +386,7 @@
 <div class="modal-backdrop" id="modal-backdrop" onclick="if(event.target===this) closeModal()">
   <div class="modal" id="modal-body"></div>
 </div>
-
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 /* ================================================================
    DATA LAYER
@@ -437,6 +444,9 @@ function statusBadgeHTML(status){
 }
 
 function switchView(view){
+  if(view !== "scan" && cameraActive){
+    stopCamera();
+  }
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   document.getElementById("view-" + view).classList.add("active");
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === view));
@@ -475,7 +485,82 @@ async function renderDashboard(){
   const widths = [3,6,3,3,9,3,6,3,3,3,9,6,3,3,6,3,9,3,3,6,3,3,9,3];
   el.innerHTML = widths.map(w => `<span style="width:${w}px"></span>`).join("");
 })();
+let html5QrCode = null;
+let cameraActive = false;
 
+async function toggleCamera(){
+  if(cameraActive){ await stopCamera(); return; }
+
+  const btn = document.getElementById("camera-toggle-btn");
+  const caption = document.getElementById("scan-caption");
+  const bars = document.getElementById("fake-bars");
+  const reader = document.getElementById("reader");
+
+  if(typeof Html5Qrcode === "undefined"){
+    caption.textContent = "The camera library didn't load — use the field below instead.";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Starting camera…";
+
+  try{
+    html5QrCode = new Html5Qrcode("reader", {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_39
+      ],
+      verbose:false
+    });
+
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 260, height: 120 } },
+      onCameraDecode,
+      () => {}
+    );
+
+    bars.style.display = "none";
+    reader.style.display = "block";
+    cameraActive = true;
+    btn.disabled = false;
+    btn.textContent = "Stop camera";
+    caption.textContent = "Point your camera at a barcode — it fills in and searches automatically.";
+  }catch(err){
+    reader.style.display = "none";
+    bars.style.display = "flex";
+    cameraActive = false;
+    btn.disabled = false;
+    btn.textContent = "Enable camera scanning";
+    caption.textContent = "Couldn't access the camera (permission denied, no camera, or not on HTTPS). Use the field below instead.";
+  }
+}
+
+async function stopCamera(){
+  const btn = document.getElementById("camera-toggle-btn");
+  const caption = document.getElementById("scan-caption");
+  const bars = document.getElementById("fake-bars");
+  const reader = document.getElementById("reader");
+
+  if(html5QrCode){
+    try{ await html5QrCode.stop(); html5QrCode.clear(); }catch(e){}
+  }
+  cameraActive = false;
+  reader.style.display = "none";
+  bars.style.display = "flex";
+  btn.textContent = "Enable camera scanning";
+  caption.textContent = "Tap \"Enable camera scanning\" and point your camera at a barcode, or use the field below.";
+}
+
+async function onCameraDecode(decodedText){
+  document.getElementById("barcode-input").value = decodedText;
+  await stopCamera();
+  handleSearch();
+  }
 document.getElementById("barcode-input").addEventListener("keydown", (e) => {
   if(e.key === "Enter"){ handleSearch(); }
 });
